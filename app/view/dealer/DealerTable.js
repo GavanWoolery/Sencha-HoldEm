@@ -9,32 +9,10 @@ var dtObj = {
 		
 		defaults: {
 			xtype: 'container',
-			//styleHtmlContent:true,
-			//width:'16%',
-			//height:'20%',
-			//align:'right',
-			//pack:'center',
 			floating:true,
 			visible:true,
-			zindex:10,
-			cls:'DealerSeat'
-			
-			//x:20
-			//x: 100,
-			//y: 30
-			//floating:true,
-			//hidden:false,
-			//zindex:100,
-			//left:200,
-			//top:200,
-			//left:200
+			zindex:10
 	    },
-		
-		/*
-		seatTemplate: {
-			xtype:'template'
-		},
-		*/
 		
 		preInit: function() {
 			var thisObj = this;

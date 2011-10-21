@@ -1,16 +1,30 @@
 
 var gsContext;
 
-var LOG_LEVEL = 10;
-
-
 var myGlobals = {
-	//myGameState:null,
-	//noGC:null,
-	globVar:null,
+	LOG_LEVEL:10,
+	mainRef:null,
 	myCounter:0,
 	traceLevel:0,
-	pushCount:0
+	pushCount:0,
+	
+	lerp: function(v1, v2, perc) {
+		return (v1*(1.0-perc) + v2*perc);
+	},
+	
+	gup: function( name )
+	{
+		name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+		var regexS = "[\\?&]"+name+"=([^&#]*)";
+		var regex = new RegExp( regexS );
+		var results = regex.exec( window.location.href );
+		if( results == null ) {
+			return "";
+		}
+		else {
+			return results[1];
+		}
+	}
 }
 
 Array.prototype.swap = function (x,y) {
@@ -20,9 +34,6 @@ Array.prototype.swap = function (x,y) {
   return this;
 }
 
-function lerp(v1, v2, perc) {
-	return (v1*(1.0-perc) + v2*perc);
-}
 
 function doTrace(val,logLev) {
 	var levelString = "";
@@ -33,7 +44,7 @@ function doTrace(val,logLev) {
 	}
 	levelString += val;
 	
-	if (logLev >= LOG_LEVEL) console.log(levelString);
+	if (logLev >= myGlobals.LOG_LEVEL) console.log(levelString);
 }
 
 function pushTrace(val, logLev) {
@@ -62,7 +73,7 @@ function popTrace(val, logLev) {
 			levelString += " Results: " + val; 
 		}
 		
-		if (logLev >= LOG_LEVEL) {
+		if (logLev >= myGlobals.LOG_LEVEL) {
 			console.log(levelString);
 		}
 	}
@@ -78,33 +89,6 @@ function doWarn(val) {
 }
 
 
-var getItemByName = function(items, n) {
-	i = 0;
-	while ( (items[i].name != n) && (i < items.length) ) {
-
-		i++;
-	}
-	if (i >= items.length) {
-		return undefined;
-	}
-	else {
-		return items[i];
-	}
-}
-
-function gup( name )
-{
-	name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
-	var regexS = "[\\?&]"+name+"=([^&#]*)";
-	var regex = new RegExp( regexS );
-	var results = regex.exec( window.location.href );
-	if( results == null ) {
-		return "";
-	}
-	else {
-		return results[1];
-	}
-}
 
 var GameState = function() {
 
@@ -139,7 +123,6 @@ var GameState = function() {
 				cards: [],
 				suits:['S', 'C', 'D', 'H'],
 				ranks:['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'],
-				callCount:0,
 				cardTargetStack:[],
 				
 				buttonCurPos:{x:50,y:-20},
@@ -425,8 +408,8 @@ var GameState = function() {
 			
 			gsContext.setCardTarget(
 				actionCard,
-				lerp(gsContext.players[playerNumber].playerPos.x,50,0.25) + gsContext.genOffset2(gsContext.players[playerNumber].cards.length,2),
-				lerp(gsContext.players[playerNumber].playerPos.y,50,0.3) + gsContext.genOffset2(gsContext.players[playerNumber].cards.length,2)*negMod-5
+				myGlobals.lerp(gsContext.players[playerNumber].playerPos.x,50,0.25) + gsContext.genOffset2(gsContext.players[playerNumber].cards.length,2),
+				myGlobals.lerp(gsContext.players[playerNumber].playerPos.y,50,0.3) + gsContext.genOffset2(gsContext.players[playerNumber].cards.length,2)*negMod-5
 			);
 			
 			
@@ -601,7 +584,7 @@ var GameState = function() {
 			if (gsContext.gameTable.activePlayer == -1) {
 				
 			}
-			myGlobals.globVar.updateSeats();
+			myGlobals.mainRef.updateSeats();
 			
 			popTrace();
 		},
@@ -1192,8 +1175,6 @@ var GameState = function() {
 			
 			var i;
 			
-			callCount = 0;
-			
 			gsContext.gameTable.minBet = gsContext.gameTable.smallBlindAmount*2;
 			
 			for (i = 0; i < gsContext.maxPlayers; i++) {
@@ -1287,80 +1268,89 @@ var GameState = function() {
 			var minToCall = gsContext.gameTable.minBet-curPlayer.playerBet;
 			var newBet = minToCall+raiseAmount;
 			
-			curPlayer.betThisRound = true;
-			
-			if ( (curPlayer.playerChips - (minToCall+raiseAmount) ) < (gsContext.gameTable.smallBlindAmount*2) ) {
-				//player does not have enough chips left over for next round, should all-in by default
-				newBet = curPlayer.playerChips;
-				raiseAmount = Math.max(newBet - minToCall,0);
-			}
-			
-			
-			//Cannot bet more chips than any other player has
-			var maxChips = 0;
-			for (i = 0; i < gsContext.maxPlayers; i++) {
-				if (i != gsContext.gameTable.activePlayer) {
-					if (gsContext.players[i].playerChips > maxChips) {
-						maxChips = gsContext.players[i].playerChips;
-					}
-				}
-			}
-			
-			if ((gsContext.gameTable.minBet + raiseAmount) > maxChips) {
-				raiseAmount = Math.max(0, maxChips - gsContext.gameTable.minBet);
-				newBet = minToCall+raiseAmount;
-			}
-			
-			gsContext.gameTable.minBet += raiseAmount;
-			curPlayer.playerChips -= newBet;
-			curPlayer.playerBet += newBet;
-			
-			
-			
-			if (raiseAmount > 0) {
-				gsContext.invalidateBets();
-			}
-			
-			
-			if (gsContext.checkAllBets()) {
-				//Every player has bet
-				if (gsContext.gameTable.cards.length < 5) {
-					
-					
-					if (gsContext.gameTable.cards.length == 0) {
-						//Deal the Flop
-						for (i = 0; i < 3; i++) {
-							gsContext.dealTableCard();
-						}
-					}
-					else {
-						//Deal the Turn and River
-						gsContext.dealTableCard();
-					}
-					
-					
-					gsContext.invalidateBets();
-					gsContext.setActivePlayer( gsContext.findNextAvailPlayer(gsContext.gameTable.activePlayer) );
-				}
-				else {
-					//show all cards, compare hands
-					gsContext.endHand();
-				}
+			if (raiseAmount < 0) {
+				curPlayer.isFolded = true;
+				
 			}
 			else {
-				//not all players have placed their bet
-				gsContext.setActivePlayer( gsContext.findNextAvailPlayer(gsContext.gameTable.activePlayer) );
+				
+				
+				curPlayer.betThisRound = true;
+
+				if ( (curPlayer.playerChips - (minToCall+raiseAmount) ) < (gsContext.gameTable.smallBlindAmount*2) ) {
+					//player does not have enough chips left over for next round, should all-in by default
+					newBet = curPlayer.playerChips;
+					raiseAmount = Math.max(newBet - minToCall,0);
+				}
+
+
+				//Cannot bet more chips than any other player has
+				var maxChips = 0;
+				for (i = 0; i < gsContext.maxPlayers; i++) {
+					if (i != gsContext.gameTable.activePlayer) {
+						if (gsContext.players[i].playerChips > maxChips) {
+							maxChips = gsContext.players[i].playerChips;
+						}
+					}
+				}
+
+				if ((gsContext.gameTable.minBet + raiseAmount) > maxChips) {
+					raiseAmount = Math.max(0, maxChips - gsContext.gameTable.minBet);
+					newBet = minToCall+raiseAmount;
+				}
+
+				gsContext.gameTable.minBet += raiseAmount;
+				curPlayer.playerChips -= newBet;
+				curPlayer.playerBet += newBet;
+
+
+
+				if (raiseAmount > 0) {
+					gsContext.invalidateBets();
+				}
+
+
+				if (gsContext.checkAllBets()) {
+					//Every player has bet
+					
+					if (gsContext.gameTable.cards.length < 5) {
+						//Deal next card(s)
+
+						if (gsContext.gameTable.cards.length == 0) {
+							//Deal the Flop
+							for (i = 0; i < 3; i++) {
+								gsContext.dealTableCard();
+							}
+						}
+						else {
+							//Deal the Turn and River
+							gsContext.dealTableCard();
+						}
+
+
+						gsContext.invalidateBets();
+					}
+					else {
+						//show all cards, compare hands
+						gsContext.endHand();
+						popTrace();
+						return;
+					}
+				}
+				else {
+					//not all players have placed their bet
+				}
+				
 			}
 			
+			gsContext.setActivePlayer( gsContext.findNextAvailPlayer(gsContext.gameTable.activePlayer) );
 			popTrace();
 			
 		},
 		
 		doFold: function() {
 			pushTrace("doFold()");
-			gsContext.players[gsContext.gameTable.activePlayer].isFolded = true;
-			gsContext.gameTable.callCount++;
-			gsContext.setActivePlayer( gsContext.findNextAvailPlayer(gsContext.gameTable.activePlayer) );
+			gsContext.addToBet(-1);
 			popTrace();
 		},
 		doCall: function() {
@@ -1375,10 +1365,9 @@ var GameState = function() {
 			
 			
 			//if (gsContext.players[gsContext.gameTable.activePlayer].playerChips < rAmount ) {
-				//myGlobals.globVar.getBetPanel().show();
+				//myGlobals.mainRef.getBetPanel().show();
 			//}
 			//else {
-				
 				
 			//}
 			
@@ -1397,12 +1386,8 @@ myGlobals.mainObj = {
 
     config: {
 		//phone,tablet,desktop
-        //profile: Ext.os.deviceType.toLowerCase()//"tablet"://"phone"//Ext.os.deviceType.toLowerCase()
-
+        //profile: Ext.os.deviceType.toLowerCase()
 		profile: "phone",
-		//profile: "tablet"
-		
-		//gameState: null
 		
 
     },
@@ -1600,7 +1585,7 @@ myGlobals.mainObj = {
 				gt.physicalCards[i].curPos.x += (gt.physicalCards[i].targetPos.x-gt.physicalCards[i].curPos.x)/2.0;
 				gt.physicalCards[i].curPos.y += (gt.physicalCards[i].targetPos.y-gt.physicalCards[i].curPos.y)/2.0;
 				
-				curCard = myGlobals.globVar['getCard'+i]();
+				curCard = myGlobals.mainRef['getCard'+i]();
 				
 				curCard.setLeft( (gt.physicalCards[i].curPos.x - gt.deckScale.x/2 )+'%');
 				curCard.setTop( (gt.physicalCards[i].curPos.y - gt.deckScale.y/2 )+'%');
@@ -1611,7 +1596,7 @@ myGlobals.mainObj = {
 		gsContext.updateCardTargets();
 		
 		
-		var myButton = myGlobals.globVar.getDealerButton();
+		var myButton = myGlobals.mainRef.getDealerButton();
 		
 		if ( Math.abs(gt.buttonCurPos.x - gt.buttonTargetPos.x) > 0.01 || Math.abs(gt.buttonCurPos.y - gt.buttonTargetPos.y) > 0.01) {
 			gt.buttonCurPos.x += (gt.buttonTargetPos.x-gt.buttonCurPos.x)/4.0;
@@ -1624,7 +1609,7 @@ myGlobals.mainObj = {
 	},
 	
 	createButton: function() {
-		var myButton = myGlobals.globVar.getDealerButton();
+		var myButton = myGlobals.mainRef.getDealerButton();
 		
 		
 		myButton.setHtml(
@@ -1672,7 +1657,7 @@ myGlobals.mainObj = {
 	init: function() {
 		pushTrace('Main Init');
 		
-		var profile = gup("pv"), view;//this.getProfile(), view;
+		var profile = myGlobals.gup("pv"), view;//this.getProfile(), view;
 		
 		
 		
@@ -1709,7 +1694,7 @@ myGlobals.mainObj = {
 				//tap: this.onDealerRegPopupOk
 				tap: function() {
 
-					myGlobals.globVar = this;
+					myGlobals.mainRef = this;
 					gsContext = GameState();
 					
 					var myName = this.getDealerRegName().getValue();
@@ -1759,7 +1744,7 @@ myGlobals.mainObj = {
 			},
 			'#betBar button[text="Raise"]': {
 				tap: function() {
-					var myRaise = parseInt(myGlobals.globVar.getBetAmount().getValue(),10);
+					var myRaise = parseInt(myGlobals.mainRef.getBetAmount().getValue(),10);
 					
 					if (myRaise) {
 						
