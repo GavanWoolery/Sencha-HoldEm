@@ -1389,13 +1389,10 @@ var GameState = function() {
 
 	}
 
-}
+};
 
 
-
-
-
-Ext.define('HoldEm.controller.Main', {
+myGlobals.mainObj = {
     extend: 'Ext.app.Controller',
 
     config: {
@@ -1416,7 +1413,27 @@ Ext.define('HoldEm.controller.Main', {
     ],
 
     // stores: ['Searches'],
-
+	
+	preInit: function() {
+		var thisObj = this;
+		
+		var i;
+		
+		for (i = 0; i < 10; i++) {
+			thisObj.refs.push({
+				ref:'player'+i,
+				selector:'#player'+i,
+			});
+		}
+		
+		for (i = 0; i < 52; i++) {
+			thisObj.refs.push({
+				ref:'card'+i,
+				selector:'#card'+i
+			});
+		}
+	},
+	
     refs: [
 		{
 			ref       : 'mainDealer',
@@ -1473,6 +1490,11 @@ Ext.define('HoldEm.controller.Main', {
 			selector: '#dealerRegTableNum'
 		},
 		
+		{
+			ref: 'dealerButton',
+			selector: '#dealerButton'
+		},
+		
 		
 		
 		{
@@ -1491,283 +1513,8 @@ Ext.define('HoldEm.controller.Main', {
 		{
 			ref: 'betAmount',
 			selector: '#betAmount'	
-		},
+		}
 		
-		
-		
-		{
-			ref: 'player0',
-			selector: '#player0'
-		},
-		{
-			ref: 'player1',
-			selector: '#player1'
-		},
-		{
-			ref: 'player2',
-			selector: '#player2'
-		},
-		{
-			ref: 'player3',
-			selector: '#player3'
-		},
-		{
-			ref: 'player4',
-			selector: '#player4'
-		},
-		{
-			ref: 'player5',
-			selector: '#player5'
-		},
-		{
-			ref: 'player6',
-			selector: '#player6'
-		},
-		{
-			ref: 'player7',
-			selector: '#player7'
-		},
-		{
-			ref: 'player8',
-			selector: '#player8'
-		},
-		{
-			ref: 'player9',
-			selector: '#player9'
-		},
-		
-		{
-			ref: 'dealerButton',
-			selector: '#dealerButton'
-		},
-		
-		
-		
-		{
-			ref: 'card0',
-			selector: '#card0'
-		},
-		{
-			ref: 'card1',
-			selector: '#card1'
-		},
-		{
-			ref: 'card2',
-			selector: '#card2'
-		},
-		{
-			ref: 'card3',
-			selector: '#card3'
-		},
-		{
-			ref: 'card4',
-			selector: '#card4'
-		},
-		{
-			ref: 'card5',
-			selector: '#card5'
-		},
-		{
-			ref: 'card6',
-			selector: '#card6'
-		},
-		{
-			ref: 'card7',
-			selector: '#card7'
-		},
-		{
-			ref: 'card8',
-			selector: '#card8'
-		},
-		{
-			ref: 'card9',
-			selector: '#card9'
-		},
-		
-		
-		
-		
-		{
-			ref: 'card10',
-			selector: '#card10'
-		},
-		{
-			ref: 'card11',
-			selector: '#card11'
-		},
-		{
-			ref: 'card12',
-			selector: '#card12'
-		},
-		{
-			ref: 'card13',
-			selector: '#card13'
-		},
-		{
-			ref: 'card14',
-			selector: '#card14'
-		},
-		{
-			ref: 'card15',
-			selector: '#card15'
-		},
-		{
-			ref: 'card16',
-			selector: '#card16'
-		},
-		{
-			ref: 'card17',
-			selector: '#card17'
-		},
-		{
-			ref: 'card18',
-			selector: '#card18'
-		},
-		{
-			ref: 'card19',
-			selector: '#card19'
-		},
-		
-		
-		
-		
-		{
-			ref: 'card20',
-			selector: '#card20'
-		},
-		{
-			ref: 'card21',
-			selector: '#card21'
-		},
-		{
-			ref: 'card22',
-			selector: '#card22'
-		},
-		{
-			ref: 'card23',
-			selector: '#card23'
-		},
-		{
-			ref: 'card24',
-			selector: '#card24'
-		},
-		{
-			ref: 'card25',
-			selector: '#card25'
-		},
-		{
-			ref: 'card26',
-			selector: '#card26'
-		},
-		{
-			ref: 'card27',
-			selector: '#card27'
-		},
-		{
-			ref: 'card28',
-			selector: '#card28'
-		},
-		{
-			ref: 'card29',
-			selector: '#card29'
-		},
-		
-		
-		
-		{
-			ref: 'card30',
-			selector: '#card30'
-		},
-		{
-			ref: 'card31',
-			selector: '#card31'
-		},
-		{
-			ref: 'card32',
-			selector: '#card32'
-		},
-		{
-			ref: 'card33',
-			selector: '#card33'
-		},
-		{
-			ref: 'card34',
-			selector: '#card34'
-		},
-		{
-			ref: 'card35',
-			selector: '#card35'
-		},
-		{
-			ref: 'card36',
-			selector: '#card36'
-		},
-		{
-			ref: 'card37',
-			selector: '#card37'
-		},
-		{
-			ref: 'card38',
-			selector: '#card38'
-		},
-		{
-			ref: 'card39',
-			selector: '#card39'
-		},
-		
-		
-		
-		{
-			ref: 'card40',
-			selector: '#card40'
-		},
-		{
-			ref: 'card41',
-			selector: '#card41'
-		},
-		{
-			ref: 'card42',
-			selector: '#card42'
-		},
-		{
-			ref: 'card43',
-			selector: '#card43'
-		},
-		{
-			ref: 'card44',
-			selector: '#card44'
-		},
-		{
-			ref: 'card45',
-			selector: '#card45'
-		},
-		{
-			ref: 'card46',
-			selector: '#card46'
-		},
-		{
-			ref: 'card47',
-			selector: '#card47'
-		},
-		{
-			ref: 'card48',
-			selector: '#card48'
-		},
-		{
-			ref: 'card49',
-			selector: '#card49'
-		},
-		
-		
-		
-		{
-			ref: 'card50',
-			selector: '#card50'
-		},
-		{
-			ref: 'card51',
-			selector: '#card51'
-		},
 		
 	],
 
@@ -2030,5 +1777,9 @@ Ext.define('HoldEm.controller.Main', {
 		
 		popTrace();
 	}
-});
+};
+
+myGlobals.mainObj.preInit();
+
+Ext.define('HoldEm.controller.Main', myGlobals.mainObj);
  

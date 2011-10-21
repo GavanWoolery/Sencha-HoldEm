@@ -21,7 +21,7 @@
 }
 .PlayerTable {
 	
-	background-size: cover;
+	background-size: 100% 100%;
 	background-repeat: no-repeat;
 	background-image: url(../images/holdem/backgrounds/Player_background_flat-01.png);
 }
