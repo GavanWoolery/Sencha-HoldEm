@@ -1,17 +1,15 @@
-var dtObj = {
+var dealerTableProps = {
 	extend: 'Ext.Container',
 	xtype: 'dealertable',
 	
 	config: {
 		cls: 'DealerTable',
 		
-		
-		
 		defaults: {
 			xtype: 'container',
 			floating:true,
-			visible:true,
-			zindex:10
+			visible:true//,
+			//zindex:10
 	    },
 		
 		preInit: function() {
@@ -31,74 +29,27 @@ var dtObj = {
 				});
 			}
 			
-			thisObj.items.push(
-				
-				{
-					id:'dealerButton'
-				},
-				
-				{
-
-					xtype:'container',
-					floating:true,
-					zindex:300,
-					left:0,
-					bottom:0,
-					width:'100%',
-					id: 'betBar',
-
-					dockedItems: [{
-				        dock: 'top',
-				        xtype: 'toolbar',
-						floating:false,
-						zIndex:300,
-
-						items: [
-							{
-								text: 'Fold',
-								xtype: 'button',
-							},
-							{
-								text: 'Call/Check',
-								xtype: 'button'
-							},
-							{
-								text: 'Raise',
-								xtype: 'button'
-							},
-							{
-								placeHolder: 'Bet Amount',
-								xtype: 'textfield',
-								id: 'betAmount'
-
-							}
-						]
-
-				    }]
-
-				},
-				{
-					id				: 'betPanel',
-					xtype           : 'panel',
-					cls				: '',
-		            floating        : true,
-		            modal           : true,
-		            hidden          : true,
-					centered		: true,
-		            width           : 300,
-		            height          : 200,
-					zIndex          : 1000, 
-		            styleHtmlContent: true,
-		            html: '<p>Please enter a valid bet amount or fold.</p>',
-		            items: [{
-		                    docked: 'top',
-		                    xtype : 'toolbar',
-		                    title : 'Invalid Bet'
-		            }],
-		            scrollable: true
-		        }	
-				
-			);
+			thisObj.items.push({
+				id:'dealerButton'
+			});
+			
+			thisObj.items.push({
+				xtype:'actionsheet',
+				id:'actionSheet',
+			    items: [
+			        /*{
+			            text: 'Delete draft',
+			            ui  : 'decline'
+			        },
+			        {
+			            text: 'Save draft'
+			        },*/
+			        {
+			            text: 'Proceed',
+			            ui  : 'confirm'
+			        }
+			    ]
+			});
 			
 		},
 		
@@ -111,6 +62,6 @@ var dtObj = {
 	
 };
 
-dtObj.config.preInit();
+dealerTableProps.config.preInit();
 
-Ext.define('HoldEm.view.dealer.DealerTable', dtObj);
+Ext.define('HoldEm.view.dealer.DealerTable', dealerTableProps);
