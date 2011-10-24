@@ -491,6 +491,8 @@ var gsContext = {
 		
 		gsContext.setCardTarget(actionCard, px, py);
 		
+		myGlobals.mainRef.updateTableItems(false, false);
+		
 		popTrace();
 	},
 	collectPlayerCard:function(playerNumber) {
@@ -661,32 +663,41 @@ var gsContext = {
 	setActivePlayer: function(myPlayer) {
 		pushTrace("setActivePlayer("+myPlayer+")");
 		
-		if (gsContext.seatIsReady(myPlayer)) {
-			gsContext.gameData.activePlayer = myPlayer;
-		}
-		else {
-			gsContext.gameData.activePlayer = gsContext.findNextAvailPlayer(myPlayer);
-		}
 		
-		myGlobals.mainRef.updateSeats();
-		
-		if (gsContext.countAvailPlayers() == 1) {
-			//Only one player not folded, end the hand
-			gsContext.endHand();
-		}
-		else {
-			if (gsContext.players[gsContext.gameData.activePlayer].playerIsAI) {
-				setTimeout(gsContext.processAI,1000);
+		if (myGlobals.deviceType == "tablet") {
+			//only the server should set the active player
+			if (gsContext.seatIsReady(myPlayer)) {
+				gsContext.gameData.activePlayer = myPlayer;
 			}
 			else {
-				vmContext.pushAction({
-					ioType: vmContext.ioTypes.PUBLISH,
-					channelString:vmContext.tableToPlayerChannel,
-					vmAction: vmContext.vmActions.T2P_SET_ACTIVE_PLAYER,
-					data: {activePlayer: gsContext.gameData.activePlayer}
-				});
+				gsContext.gameData.activePlayer = gsContext.findNextAvailPlayer(myPlayer);
+			}
+
+			myGlobals.mainRef.updateSeats();
+
+			if (gsContext.countAvailPlayers() == 1) {
+				//Only one player not folded, end the hand
+				gsContext.endHand();
+			}
+			else {
+				if (gsContext.players[gsContext.gameData.activePlayer].playerIsAI ) {
+					setTimeout(gsContext.processAI,500);
+				}
+				else {
+					vmContext.pushAction({
+						ioType: vmContext.ioTypes.PUBLISH,
+						channelString:vmContext.tableToPlayerChannel,
+						vmAction: vmContext.vmActions.T2P_SET_ACTIVE_PLAYER,
+						data: {activePlayer: gsContext.gameData.activePlayer}
+					});
+				}
 			}
 		}
+		else {
+			doWarn("Client attempted to call setActivePlayer()");
+		}
+		
+		
 		
 		popTrace();
 	},
@@ -1392,24 +1403,6 @@ var gsContext = {
 		var res;
 		
 		
-		
-		if (curPlayer.playerIsAI || myGlobals.deviceType == "tablet") {
-			//publish only from table to players
-		}
-		else {
-			//publish from this player to the table, and then publish from the table to all players
-			
-			vmContext.pushAction({
-				ioType: vmContext.ioTypes.PUBLISH,
-				channelString:vmContext.playerToTableChannel,
-				vmAction: vmContext.vmActions.P2T_BET_REQ,
-				data: {seatNumber: gsContext.thisSeatNumber, rAmount:raiseAmount}
-			});
-			
-		}
-		
-		
-		
 		if (raiseAmount < 0) {
 			curPlayer.isFolded = true;
 			
@@ -1491,14 +1484,24 @@ var gsContext = {
 		
 	},
 	
+	playerSubmitBet: function(raiseAmount) {
+		myGlobals.mainRef.getBetBar().hide();
+		vmContext.pushAction({
+			ioType: vmContext.ioTypes.PUBLISH,
+			channelString:vmContext.playerToTableChannel,
+			vmAction: vmContext.vmActions.P2T_BET_REQ,
+			data: {seatNumber: gsContext.thisSeatNumber, rAmount:raiseAmount}
+		});
+	},
+	
 	doFold: function() {
 		pushTrace("doFold()");
-		gsContext.addToBet(-1);
+		gsContext.playerSubmitBet(-1);
 		popTrace();
 	},
 	doCall: function() {
 		pushTrace("doCall()");
-		gsContext.addToBet(0);
+		gsContext.playerSubmitBet(0);
 		popTrace();
 	},
 	doRaise: function() {
@@ -1515,7 +1518,7 @@ var gsContext = {
 		
 		myRaise = Math.min( Math.max(myRaise,gsContext.gameData.smallBlindAmount*2), gsContext.players[gsContext.gameData.activePlayer].playerChips );
 		
-		gsContext.addToBet(myRaise);
+		gsContext.playerSubmitBet(myRaise);
 		popTrace();		
 		
 	}
@@ -1647,7 +1650,7 @@ var vmContext = {
 					myGlobals.mainRef.getMainPlayer().setActiveItem(myGlobals.mainRef.getPlayerTable());
 					myGlobals.mainRef.updateTableItems(true,false);
 					
-					//myGlobals.mainRef.getBetBar().hide();
+					myGlobals.mainRef.getBetBar().hide();
 				}
 				
 				
@@ -1657,14 +1660,6 @@ var vmContext = {
 				Ext.Msg.alert("Table Full", "Sorry, this table is currently full.\nPlease wait for an open spot or choose another.\n", Ext.emptyFn);
 			break;
 			case vma.P2T_BET_REQ:
-				/*
-				vmContext.pushAction({
-					ioType: vmContext.ioTypes.PUBLISH,
-					channelString:vmContext.playerToTableChannel,
-					vmAction: vmContext.vmActions.P2T_BET_REQ,
-					data: {seatNumber: gsContext.thisSeatNumber, rAmount:raiseAmount}
-				});
-				*/
 				if (response.data.seatNumber == gsContext.gameData.activePlayer) {
 					gsContext.addToBet(response.data.rAmount);
 				}
@@ -1687,12 +1682,20 @@ var vmContext = {
 					gsContext.players = response.data.players;
 					
 					gsContext.dealAllCards();
+					
+					if (gsContext.thisSeatNumber == response.data.activePlayer) {
+						//Your phone is the active player
+
+						myGlobals.mainRef.getBetBar().show();
+					}
+					
 				}
 			break;
 			case vma.T2P_SET_ACTIVE_PLAYER:
 				if (gsContext.thisSeatNumber == response.data.activePlayer) {
 					//Your phone is the active player
-					//myGlobals.mainRef.getBetBar().show();
+					
+					myGlobals.mainRef.getBetBar().show();
 				}
 			break;
 		}
@@ -2020,13 +2023,28 @@ myGlobals.mainObj = {
 		var gt = gsContext.gameTable;
 		var curCard;
 		var numCards = gsContext.gameTable.physicalCards.length;
-		
+		var isTurned;
 		
 		for (i = 0; i < numCards; i++) {
 			curCard = this['getCard'+i]();
 			
 			if (myGlobals.deviceType == "tablet" && (!showFlipped)) {
-				cImage = "back";
+				isTurned = false;
+				
+				for (j = 0; j < gsContext.gameData.cards.length; j++) {
+					if (gsContext.gameData.cards[j] == i) {
+						
+						isTurned = true;
+					} 
+				}
+				
+				if (isTurned) {
+					cImage = gt.physicalCards[i].stringVal;
+				}
+				else {
+					cImage = "back";
+				}
+				
 			}
 			else {
 				cImage = gt.physicalCards[i].stringVal;
@@ -2173,25 +2191,17 @@ myGlobals.mainObj = {
 			
 			'#betBar button[text="Fold"]': {
 				tap: function() {				
-					//this.getBetBar().hide();
 					gsContext.doFold();
-					
-					
 				}
 			},
 			'#betBar button[text="Call/Check"]': {
 				tap: function() {
-					//this.getBetBar().hide();
 					gsContext.doCall();
-					
 				}
 			},
 			'#betBar button[text="Raise"]': {
 				tap: function() {
-					//this.getBetBar().hide();
 					gsContext.doRaise();
-					
-					
 				}
 			}
 			
