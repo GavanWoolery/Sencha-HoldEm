@@ -3,7 +3,6 @@ var myGlobals = {
 	LOG_LEVEL:-1,
 	mainRef:null,
 	deviceType:null,
-	myCounter:0,
 	traceLevel:0,
 	pushCount:0,
 	
@@ -1321,28 +1320,32 @@ var gsContext = {
 	
 	beginDeal: function() {
 		pushTrace("beginDeal()");
-		gsContext.resetFolds();
-		gsContext.collectAllCards();
-		myGlobals.mainRef.updateTableItems(false,false);
 		
-		if (gsContext.countAvailPlayers() > 1) {
-			gsContext.moveButtonForward();
-			gsContext.shuffleDeck();
-			
-			
-			vmContext.pushAction({
-				ioType: vmContext.ioTypes.PUBLISH,
-				channelString:vmContext.tableToPlayerChannel,
-				vmAction: vmContext.vmActions.T2P_NEW_HAND,
-				data: {gameData:gsContext.gameData, players:gsContext.players}
-			});
-			gsContext.dealAllCards();
-			
+		if (myGlobals.deviceType == "tablet") {
+			gsContext.resetFolds();
+			gsContext.collectAllCards();
+			myGlobals.mainRef.updateTableItems(false,false);
+
+			if (gsContext.countAvailPlayers() > 1) {
+				gsContext.moveButtonForward();
+				gsContext.shuffleDeck();
+
+				vmContext.pushAction({
+					ioType: vmContext.ioTypes.PUBLISH,
+					channelString:vmContext.tableToPlayerChannel,
+					vmAction: vmContext.vmActions.T2P_NEW_HAND,
+					data: {gameData:gsContext.gameData, players:gsContext.players}
+				});
+				gsContext.dealAllCards();
+
+			}
+			else {
+				//wait for more players
+			}
 		}
 		else {
-			//wait for more players
+			doWarn("Client attempted to call beginDeal()");
 		}
-		
 		
 		popTrace();
 	},
@@ -1678,6 +1681,8 @@ var vmContext = {
 					//If the seatNumber is undefined, this player has not joined the game and this message does not apply
 				}
 				else {
+					gsContext.collectAllCards();
+					
 					gsContext.gameData = response.data.gameData;
 					gsContext.players = response.data.players;
 					
@@ -1972,8 +1977,6 @@ myGlobals.mainObj = {
 	},
 	
 	doAnimate: function() {
-		var xx = new Date();
-		myGlobals.myCounter++;
 		
 		var i;
 		var gt = gsContext.gameTable;
